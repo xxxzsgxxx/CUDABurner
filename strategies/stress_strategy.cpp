@@ -45,11 +45,10 @@ StressStrategy::StressStrategy(const GpuProperties& props, GpuMonitor& monitor)
 
         while (elapsed_seconds < test_duration_seconds) {
             op->execute(0);
-            // Synchronize to ensure the kernel has finished and power usage is high
-            CUDA_CHECK(cudaDeviceSynchronize());
             power_samples.push_back(monitor_.get_state().power_usage);
             auto end_time = std::chrono::high_resolution_clock::now();
             elapsed_seconds = std::chrono::duration<double>(end_time - start_time).count();
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
         CUDA_CHECK(cudaDeviceSynchronize());
 

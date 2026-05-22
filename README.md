@@ -54,6 +54,13 @@ cmake ..
 make -j
 ```
 
+If your CUDA toolkit is not installed in the default path (`/usr/local/cuda`), specify the include directory manually:
+
+```bash
+cmake .. -DCMAKE_CXX_FLAGS="-I/usr/local/cuda/include" \
+  -DCMAKE_CUDA_FLAGS="-I/usr/local/cuda/include"
+```
+
 ### Run
 The executable `CUDABurner` will be located in the `build` directory.
 
@@ -131,6 +138,13 @@ mkdir build
 cd build
 cmake ..
 make -j
+```
+
+如果 CUDA Toolkit 不在默认路径（`/usr/local/cuda`），需手动指定 include 目录：
+
+```bash
+cmake .. -DCMAKE_CXX_FLAGS="-I/usr/local/cuda/include" \
+  -DCMAKE_CUDA_FLAGS="-I/usr/local/cuda/include"
 ```
 
 ### 运行

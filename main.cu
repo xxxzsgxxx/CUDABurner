@@ -31,7 +31,7 @@ void print_usage(const char* prog_name) {
 }
 
 int main(int argc, char** argv) {
-    unsigned int device_id = 0;
+    int gpu_id = -1;
     std::string mode;
     std::vector<std::string> selected_precisions;
 
@@ -39,7 +39,11 @@ int main(int argc, char** argv) {
     if (argc > 1) {
         for (int i = 1; i < argc; ++i) {
             std::string arg = argv[i];
-            if (arg == "--mode") {
+            if (arg == "--gpu-id") {
+                if (i + 1 < argc) {
+                    gpu_id = std::stoi(argv[++i]);
+                }
+            } else if (arg == "--mode") {
                 if (i + 1 < argc) {
                     mode = argv[++i];
                 }
@@ -51,12 +55,38 @@ int main(int argc, char** argv) {
         }
     }
 
+    // Initialize minimal CUDA to list devices
+    cudaFree(0);
+    auto devices = GpuProperties::list_devices();
+    if (devices.empty()) {
+        std::cerr << "Critical Error: No CUDA-capable GPU found." << std::endl;
+        return 1;
+    }
+
+    // --- Validate --gpu-id ---
+    if (gpu_id >= 0 && gpu_id >= static_cast<int>(devices.size())) {
+        std::cerr << "Error: GPU ID " << gpu_id << " is out of range (0-"
+                  << devices.size() - 1 << ")." << std::endl;
+        return 1;
+    }
+
     // --- Interactive Menu if no mode is specified ---
     if (mode.empty()) {
-        int choice = 0;
         std::cout << "=================================" << std::endl;
         std::cout << "  CUDABurner - Mode Selection    " << std::endl;
         std::cout << "=================================" << std::endl;
+        std::cout << "Available GPUs:" << std::endl;
+        for (const auto& dev : devices) {
+            std::cout << "  " << dev << std::endl;
+        }
+        std::cout << "---------------------------------" << std::endl;
+        if (gpu_id < 0) {
+            std::cout << "Enter GPU ID [0]: ";
+            int tmp;
+            std::cin >> tmp;
+            gpu_id = tmp;
+        }
+        int choice = 0;
         std::cout << "  1. Stress Test (Max Power)     " << std::endl;
         std::cout << "  2. Benchmark Test (All Precisions)" << std::endl;
         std::cout << "---------------------------------" << std::endl;
@@ -69,6 +99,8 @@ int main(int argc, char** argv) {
         }
     }
 
+    if (gpu_id < 0) gpu_id = 0;
+
     if (mode != "stress" && mode != "benchmark") {
         print_usage(argv[0]);
         return 1;
@@ -80,23 +112,20 @@ int main(int argc, char** argv) {
     signal(SIGINT, signal_handler);
 
     try {
-        // Explicitly initialize CUDA context and check for errors
-        cudaError_t err = cudaFree(0);
-        if (err != cudaSuccess) {
-            std::cerr << "Critical Error: Failed to initialize CUDA context: " << cudaGetErrorString(err) << std::endl;
-            return 1;
-        }
+        // Set the target GPU before any CUDA operations
+        CUDA_CHECK(cudaSetDevice(gpu_id));
+        CUDA_CHECK(cudaFree(0));
 
-        std::cout << "Initializing CUDABurner for device " << device_id << " in '" << mode << "' mode..." << std::endl;
+        std::cout << "Initializing CUDABurner for GPU [" << gpu_id << "] in '" << mode << "' mode..." << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(1));
         
-        GpuProperties gpu_props(device_id);
+        GpuProperties gpu_props(gpu_id);
         
         // --- DIAGNOSTIC PRINT ---
         std::cout << "---------------------------------------------------------" << std::endl;
         std::cout << "DIAGNOSTIC INFO:" << std::endl;
         std::cout << "  GPU Name            : " << gpu_props.name << std::endl;
-        GpuMonitor monitor(device_id);
+        GpuMonitor monitor(gpu_id);
         
         // Start the monitor early so the strategy constructor can use it.
         monitor.start();

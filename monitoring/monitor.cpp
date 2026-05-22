@@ -14,8 +14,6 @@ GpuMonitor::GpuMonitor(unsigned int device_id) : device_id_(device_id), stop_fla
 
 GpuMonitor::~GpuMonitor() {
     stop();
-    // nvmlShutdown() is called in the main executable to avoid conflicts if multiple monitors were created.
-    // In our case, it's safe here, but as a good practice, it's often managed globally.
     nvmlShutdown();
 }
 
@@ -28,6 +26,8 @@ void GpuMonitor::stop() {
     stop_flag_ = true;
     if (monitor_thread_.joinable()) {
         monitor_thread_.join();
+    } else {
+        monitor_thread_ = std::thread();
     }
 }
 

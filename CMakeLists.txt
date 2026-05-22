@@ -19,22 +19,49 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
 find_package(Threads REQUIRED)
+
+# CUDA include path - auto-detected or user-provided
+# Usage: cmake .. -DCUDA_INCLUDE_DIR=/usr/local/cuda/include
+if(DEFINED CUDA_INCLUDE_DIR)
+    message(STATUS "Using CUDA include dir from user: ${CUDA_INCLUDE_DIR}")
+elseif(CUDAToolkit_INCLUDE_DIRS)
+    set(CUDA_INCLUDE_DIR "${CUDAToolkit_INCLUDE_DIRS}")
+    message(STATUS "Using CUDA include dir from CUDAToolkit: ${CUDA_INCLUDE_DIR}")
+elseif(CUDA_TOOLKIT_ROOT_DIR)
+    set(CUDA_INCLUDE_DIR "${CUDA_TOOLKIT_ROOT_DIR}/include")
+    message(STATUS "Using CUDA include dir from CUDA_TOOLKIT_ROOT_DIR: ${CUDA_INCLUDE_DIR}")
+else()
+    find_path(CUDA_INCLUDE_DIR nvml.h
+        PATHS /usr/local/cuda/include /opt/cuda/include
+        NO_DEFAULT_PATH
+    )
+    if(CUDA_INCLUDE_DIR)
+        message(STATUS "Auto-detected CUDA include dir: ${CUDA_INCLUDE_DIR}")
+    else()
+        message(WARNING "CUDA include directory not found. Set -DCUDA_INCLUDE_DIR=/path/to/cuda/include")
+    endif()
+endif()
+
+if(CUDA_INCLUDE_DIR AND EXISTS "${CUDA_INCLUDE_DIR}/nvml.h")
+    list(APPEND EXTRA_INCLUDE_DIRS "${CUDA_INCLUDE_DIR}")
+endif()
+
 find_library(NVML_LIB nvidia-ml DOC "Path to NVML library")
 if(NOT NVML_LIB)
     message(FATAL_ERROR "NVML library (nvidia-ml) not found.")
 endif()
 
 add_executable(CUDABurner
-    main.cu # <-- KEY CHANGE
+    main.cu
     monitoring/monitor.cpp
+    operators/matrix_size.cpp
     operators/gemm_generic.cu
     operators/gemm_tensorcore.cu
-    operators/vector_add.cu
-    operators/power_virus_kernel.cu
     operators/gemm_sparse_tensorcore.cu
     operators/gemm_fp8_tensorcore.cu
     operators/gemm_fp4_tensorcore.cu
-    operators/operator_factory.cu     # <-- KEY CHANGE
+    operators/gemm_int4_tensorcore.cu
+    operators/operator_factory.cu
     strategies/stress_strategy.cpp
     strategies/benchmark_strategy.cpp
     ui/tui.cpp
@@ -42,6 +69,7 @@ add_executable(CUDABurner
 
 target_include_directories(CUDABurner PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
+    ${EXTRA_INCLUDE_DIRS}
 )
 
 # Manually define CUDA_VERSION for the preprocessor as it's not being picked up automatically

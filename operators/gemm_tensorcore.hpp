@@ -7,6 +7,7 @@
 class GemmTensorCore : public BaseOperator {
 public:
     GemmTensorCore(const OperatorDescriptor& desc, const GpuProperties& props, int m, int n, int k);
+    GemmTensorCore(const OperatorDescriptor& desc, const GpuProperties& props);
     ~GemmTensorCore();
 
     void execute(cudaStream_t stream) override;

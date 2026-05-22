@@ -18,9 +18,10 @@ BenchmarkStrategy::BenchmarkStrategy(GpuMonitor& monitor, const GpuProperties& p
         {Precision::BF16, Sparsity::DENSE},
         {Precision::INT8, Sparsity::DENSE},
         {Precision::INT8, Sparsity::SPARSE},
-        // {Precision::FP8,  Sparsity::DENSE},
-        // {Precision::FP8,  Sparsity::SPARSE},
-        // {Precision::FP4,  Sparsity::DENSE},
+        {Precision::INT4, Sparsity::DENSE},
+        {Precision::FP8,  Sparsity::DENSE},
+        {Precision::FP8,  Sparsity::SPARSE},
+        {Precision::FP4,  Sparsity::DENSE},
     };
 
     if (selected_precisions.empty()) {

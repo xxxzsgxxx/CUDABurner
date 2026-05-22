@@ -2,7 +2,6 @@
 #include "utils/helpers.hpp"
 
 #if CUDA_VERSION >= 12030
-#include <cuda_INT4.h>
 
 #define CUBLASLT_CHECK(call)                                                \
     do {                                                                    \

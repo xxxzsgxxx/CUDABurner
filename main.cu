@@ -8,6 +8,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "utils/helpers.hpp"
 #include "core/gpu_props.hpp"
 #include "monitoring/monitor.hpp"
 #include "strategies/base_strategy.hpp"

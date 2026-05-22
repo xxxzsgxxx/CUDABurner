@@ -4,9 +4,35 @@
 #include <cstring>
 #include <iostream> // For std::cerr
 
+int cuda_to_nvml_device_index(int cuda_device_id) {
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, cuda_device_id);
+    std::string cuda_pci_bus_id(prop.pciBusID);
+
+    int nvml_device_count;
+    nvmlReturn_t result = nvmlDeviceGetCount(&nvml_device_count);
+    if (result != NVML_SUCCESS) return cuda_device_id;
+
+    for (int i = 0; i < nvml_device_count; ++i) {
+        nvmlDevice_t nvml_handle;
+        result = nvmlDeviceGetHandleByIndex(i, &nvml_handle);
+        if (result != NVML_SUCCESS) continue;
+
+        char nvml_pci_bus_id[NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE];
+        result = nvmlDeviceGetPciInfoToString(nvml_handle, nvml_pci_bus_id);
+        if (result != NVML_SUCCESS) continue;
+
+        if (cuda_pci_bus_id == std::string(nvml_pci_bus_id)) {
+            return i;
+        }
+    }
+    return cuda_device_id;
+}
+
 GpuMonitor::GpuMonitor(unsigned int device_id) : device_id_(device_id), stop_flag_(false) {
+    int nvml_device_index = cuda_to_nvml_device_index(device_id);
     NVML_CHECK(nvmlInit());
-    NVML_CHECK(nvmlDeviceGetHandleByIndex(device_id_, &device_handle_));
+    NVML_CHECK(nvmlDeviceGetHandleByIndex(nvml_device_index, &device_handle_));
     NVML_CHECK(nvmlDeviceGetName(device_handle_, current_state_.name, NVML_DEVICE_NAME_BUFFER_SIZE));
     NVML_CHECK(nvmlSystemGetDriverVersion(current_state_.driver_version, NVML_SYSTEM_DRIVER_VERSION_BUFFER_SIZE));
     current_state_.device_id = device_id_;

@@ -3,12 +3,15 @@
 #include <string>
 #include <vector>
 
+#include "operators/operator_traits.hpp"
+
 struct GpuProperties {
     int device_id;
     std::string name;
-    int cc_major; // Compute Capability Major
-    int cc_minor; // Compute Capability Minor
-    size_t total_global_mem; // VRAM in bytes
+    int cc_major;
+    int cc_minor;
+    size_t total_global_mem;
+    char pci_bus_id[16];
 
     GpuProperties(int dev_id = 0) : device_id(dev_id), total_global_mem(0) {
         cudaDeviceProp prop;
@@ -17,6 +20,7 @@ struct GpuProperties {
         cc_major = prop.major;
         cc_minor = prop.minor;
         total_global_mem = prop.totalGlobalMem;
+        std::memcpy(pci_bus_id, prop.pciBusID, 16);
     }
 
     static std::vector<std::string> list_devices() {
@@ -34,3 +38,5 @@ struct GpuProperties {
 };
 
 size_t precision_element_size(Precision p);
+
+int cuda_to_nvml_device_index(int cuda_device_id);

@@ -25,7 +25,8 @@ GemmInt4TensorCore::GemmInt4TensorCore(const OperatorDescriptor& desc, int m, in
     // INT4 has 2 elements per byte
     size_t size_A = (size_t)m_ * k_ / 2;
     size_t size_B = (size_t)k_ * n_ / 2;
-    size_t size_C = (size_t)m_ * n_;
+    // C is INT32 (4 bytes per element)
+    size_t size_C = (size_t)m_ * n_ * sizeof(int32_t);
 
     CUDA_CHECK(cudaMalloc(&d_A_, size_A));
     CUDA_CHECK(cudaMalloc(&d_B_, size_B));
@@ -39,7 +40,7 @@ GemmInt4TensorCore::GemmInt4TensorCore(const OperatorDescriptor& desc, int m, in
 
     CUBLASLT_CHECK(cublasLtMatrixLayoutCreate(&A_desc_, data_type, m_, k_, lda));
     CUBLASLT_CHECK(cublasLtMatrixLayoutCreate(&B_desc_, data_type, k_, n_, ldb));
-    CUBLASLT_CHECK(cublasLtMatrixLayoutCreate(&C_desc_, data_type, m_, n_, ldc));
+    CUBLASLT_CHECK(cublasLtMatrixLayoutCreate(&C_desc_, CUDA_R_32I, m_, n_, ldc));
 
     gflops_or_gops_ = (2.0 * m_ * n_ * k_) / 1e9;
 }

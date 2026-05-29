@@ -2,6 +2,7 @@
 #include "utils/helpers.hpp"
 
 #if CUDA_VERSION >= 12030
+#include <cuda_fp16.h>
 #include <cuda_fp4.h>
 
 // Helper to check cuBLAS LT errors
@@ -21,13 +22,15 @@ GemmFp4TensorCore::GemmFp4TensorCore(const OperatorDescriptor& desc, int m, int 
     
     CUBLASLT_CHECK(cublasLtCreate(&cublaslt_handle_));
 
-    cudaDataType_t data_type = CUDA_R_4F_E2M1;
+    cudaDataType_t a_type = CUDA_R_4F_E2M1;
+    // Output in FP16 (2 bytes/element) for correct accumulation — FP4 output would lose precision
+    cudaDataType_t c_type = CUDA_R_16F;
     cublasComputeType_t compute_type = CUBLAS_COMPUTE_32F;
     
-    // FP4 has 2 elements per byte
+    // FP4 has 2 elements per byte, FP16 has 2 bytes per element
     size_t size_A = (size_t)m_ * k_ / 2;
     size_t size_B = (size_t)k_ * n_ / 2;
-    size_t size_C = (size_t)m_ * n_ / 2;
+    size_t size_C = (size_t)m_ * n_ * sizeof(__half);
 
     CUDA_CHECK(cudaMalloc(&d_A_, size_A));
     CUDA_CHECK(cudaMalloc(&d_B_, size_B));
@@ -39,9 +42,9 @@ GemmFp4TensorCore::GemmFp4TensorCore(const OperatorDescriptor& desc, int m, int 
     size_t ldb = k_;
     size_t ldc = m_;
 
-    CUBLASLT_CHECK(cublasLtMatrixLayoutCreate(&A_desc_, data_type, m_, k_, lda));
-    CUBLASLT_CHECK(cublasLtMatrixLayoutCreate(&B_desc_, data_type, k_, n_, ldb));
-    CUBLASLT_CHECK(cublasLtMatrixLayoutCreate(&C_desc_, data_type, m_, n_, ldc));
+    CUBLASLT_CHECK(cublasLtMatrixLayoutCreate(&A_desc_, a_type, m_, k_, lda));
+    CUBLASLT_CHECK(cublasLtMatrixLayoutCreate(&B_desc_, a_type, k_, n_, ldb));
+    CUBLASLT_CHECK(cublasLtMatrixLayoutCreate(&C_desc_, c_type, m_, n_, ldc));
 
     gflops_or_gops_ = (2.0 * m_ * n_ * k_) / 1e9;
 }

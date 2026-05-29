@@ -70,7 +70,7 @@ void TUI::render_loop() {
             std::cout << "[Benchmark Results]" << (strategy_.is_done() ? " (Completed)" : " (In Progress...)") << std::endl;
             std::cout << std::left
                       << std::setw(10) << "Precision"
-                      << std::setw(8)  << "Mode" // New column for Dense/Sparse
+                      << std::setw(8)  << "Mode"
                       << std::setw(20) << "Performance"
                       << std::setw(25) << "Engine / Notes"
                       << std::endl;
@@ -94,9 +94,18 @@ void TUI::render_loop() {
                               << std::setw(20) << perf_str
                               << std::setw(25) << res.notes
                               << std::endl;
+
+                    if (res.peak.max_temp > 0) {
+                        std::cout << "          Peak  "
+                                  << "T:" << res.peak.max_temp << "°C  "
+                                  << "P:" << std::fixed << std::setprecision(1) << res.peak.max_power << "W  "
+                                  << "CLK:" << res.peak.max_gpu_clock << "MHz  "
+                                  << "MEM:" << res.peak.max_mem_clock << "MHz"
+                                  << std::endl;
+                    }
+                    std::cout << "  --------------------------------------------------------------------------" << std::endl;
                 }
                 if (any_throttled) {
-                    std::cout << "----------------------------------------------------------------------------" << std::endl;
                     std::cout << "* Performance may be limited by throttling." << std::endl;
                 }
             }

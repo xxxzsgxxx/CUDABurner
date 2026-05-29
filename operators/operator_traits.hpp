@@ -22,12 +22,20 @@ const std::map<Precision, std::string> PRECISION_NAMES = {
     {Precision::FP4,  "FP4"}
 };
 
+struct PeakVitals {
+    int max_temp = 0;
+    double max_power = 0.0;
+    unsigned int max_gpu_clock = 0;
+    unsigned int max_mem_clock = 0;
+};
+
 struct BenchmarkResult {
     OperatorDescriptor descriptor;
-    double performance = 0.0; // TFLOPS or TOPS
+    double performance = 0.0;
     bool is_native = false;
     bool is_supported = true;
     std::string unit = "TFLOPS";
     std::string notes;
     bool was_throttled = false;
+    PeakVitals peak;
 };

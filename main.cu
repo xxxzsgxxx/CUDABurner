@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <csignal>
 #include <memory>
 #include <atomic>
@@ -126,6 +127,27 @@ int main(int argc, char** argv) {
         std::cout << "---------------------------------------------------------" << std::endl;
         std::cout << "DIAGNOSTIC INFO:" << std::endl;
         std::cout << "  GPU Name            : " << gpu_props.name << std::endl;
+        std::cout << "  Compute Capability  : " << gpu_props.cc_major << "." << gpu_props.cc_minor
+                  << " (SM" << gpu_props.sm_version() << ")" << std::endl;
+        std::cout << "  VRAM                : " << (gpu_props.total_global_mem >> 30) << " GB" << std::endl;
+
+        std::cout << "  Precision Support   :" << std::endl;
+        const std::vector<std::pair<Precision, std::string>> precisions_to_check = {
+            {Precision::FP64, "FP64"}, {Precision::FP32, "FP32"}, {Precision::TF32, "TF32"},
+            {Precision::FP16, "FP16"}, {Precision::BF16, "BF16"}, {Precision::INT8, "INT8"},
+            {Precision::INT8, "INT8 (Sparse)"}, {Precision::FP8, "FP8"},
+            {Precision::INT4, "INT4"}, {Precision::FP4, "FP4"}
+        };
+        for (const auto& [p, name] : precisions_to_check) {
+            bool supported;
+            if (name.find("Sparse") != std::string::npos) {
+                supported = gpu_props.supports_precision(p, Sparsity::SPARSE);
+            } else {
+                supported = gpu_props.supports_precision(p, Sparsity::DENSE);
+            }
+            std::cout << "    " << std::left << std::setw(16) << name
+                      << (supported ? "[Supported]" : "[Not Supported]") << std::endl;
+        }
         GpuMonitor monitor(gpu_id);
         
         // Start the monitor early so the strategy constructor can use it.

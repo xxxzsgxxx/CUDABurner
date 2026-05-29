@@ -7,22 +7,23 @@
 int cuda_to_nvml_device_index(int cuda_device_id) {
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, cuda_device_id);
-    std::string cuda_pci_bus_id(prop.pciBusID);
 
-    int nvml_device_count;
-    nvmlReturn_t result = nvmlDeviceGetCount(&nvml_device_count);
+    unsigned int nvml_device_count;
+    nvmlReturn_t result = nvmlDeviceGetCount_v2(&nvml_device_count);
     if (result != NVML_SUCCESS) return cuda_device_id;
 
-    for (int i = 0; i < nvml_device_count; ++i) {
+    for (unsigned int i = 0; i < nvml_device_count; ++i) {
         nvmlDevice_t nvml_handle;
         result = nvmlDeviceGetHandleByIndex(i, &nvml_handle);
         if (result != NVML_SUCCESS) continue;
 
-        char nvml_pci_bus_id[NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE];
-        result = nvmlDeviceGetPciInfoToString(nvml_handle, nvml_pci_bus_id);
+        nvmlPciInfo_t nvml_pci_info;
+        result = nvmlDeviceGetPciInfo(nvml_handle, &nvml_pci_info);
         if (result != NVML_SUCCESS) continue;
 
-        if (cuda_pci_bus_id == std::string(nvml_pci_bus_id)) {
+        if (nvml_pci_info.bus == (unsigned int)prop.pciBusID
+            && nvml_pci_info.domain == (unsigned int)prop.pciDomainID
+            && nvml_pci_info.device == (unsigned int)(prop.pciDeviceID & 0x1f)) {
             return i;
         }
     }
